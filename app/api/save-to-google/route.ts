@@ -60,6 +60,17 @@ export async function POST(req: Request) {
     const docId = driveRes.data.id!;
     const docUrl = `https://docs.google.com/document/d/${docId}/edit`;
 
+    // --- 1.5 전체 접근 권한 설정 (링크가 있는 모든 사용자에게 읽기 권한 부여) ---
+    currentStep = "Step 1.5: 문서 접근 권한 변경 (전체 공개)";
+    console.log(currentStep);
+    await drive.permissions.create({
+      fileId: docId,
+      requestBody: {
+        role: "reader",
+        type: "anyone",
+      },
+    });
+
     // --- 2. Docs API를 사용하여 본문 내용 삽입 ---
     currentStep = "Step 2: 생성된 문서에 본문 내용 삽입";
     console.log(currentStep);

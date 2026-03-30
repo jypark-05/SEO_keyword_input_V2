@@ -135,7 +135,11 @@ function EditorContent() {
   };
 
   const charCount = content.length;
-  const mainKeywordIncluded = mainKeyword ? content.includes(mainKeyword) : false;
+  
+  // 대소문자 구분 없이 키워드 포함 여부 확인
+  const mainKeywordIncluded = mainKeyword 
+    ? content.toLowerCase().includes(mainKeyword.toLowerCase()) 
+    : false;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(content);
@@ -308,7 +312,7 @@ function EditorContent() {
                   <p className="text-[13px] font-medium text-gray-500 mb-3 block">서브 키워드 최적화</p>
                   <div className="flex flex-wrap gap-2">
                     {subKeywords.map((kw, i) => {
-                      const included = content.includes(kw);
+                      const included = content.toLowerCase().includes(kw.toLowerCase());
                       return (
                         <span key={i} className={`text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors ${included ? 'text-[#30d158] bg-[#30d158]/10 border border-[#30d158]/20' : 'text-gray-400 bg-white/5 border border-white/5'}`}>
                           {kw}
@@ -324,7 +328,7 @@ function EditorContent() {
                    <p className="text-[13px] font-medium text-gray-500 mb-3 block">연관 검색어 최적화 (3회 이상)</p>
                    <div className="flex flex-wrap gap-2">
                      {relatedKeywords.map((kw, i) => {
-                       const count = (content.match(new RegExp(kw, 'g')) || []).length;
+                       const count = (content.match(new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length;
                        const pass = count >= 3;
                        return (
                          <span key={i} className={`text-[12px] font-bold px-3 py-1.5 rounded-full transition-colors flex items-center gap-1 ${pass ? 'text-[#30d158] bg-[#30d158]/10 border border-[#30d158]/20' : count > 0 ? 'text-orange-400 bg-orange-400/10 border border-orange-400/20' : 'text-gray-400 bg-white/5 border border-white/5'}`}>

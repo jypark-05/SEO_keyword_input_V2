@@ -5,15 +5,14 @@ import ProgressBar from "@/components/ProgressBar";
 
 const SEO_CHECKLIST = [
   { id: 'c1', category: '기본 메타/타이틀', text: 'Title Tag: 핵심 키워드 1회 포함' },
-  { id: 'c2', category: '기본 메타/타이틀', text: 'Title 길이: 20~40자' },
   { id: 'c3', category: '기본 메타/타이틀', text: 'Meta Description: 요약 문장 존재, 검색 의도 설명됨' },
   { id: 'c4', category: '본문 구조(상단)', text: 'TL;DR: H1 바로 아래 요약' },
   { id: 'c5', category: '본문 구조(상단)', text: '단정형 문장: “~이다” 형태' },
   { id: 'c6', category: '본문 구조(상단)', text: '질문형 키워드: 실제 검색 질문 반영' },
-  { id: 'c7', category: '분량/형식', text: '글자 수: 6,000자 이상' },
+  { id: 'c7', category: '분량/형식', text: '글자 수: 3,000자 이상' },
   { id: 'c8', category: '분량/형식', text: '문단 구조: 문단/리스트 적절' },
   { id: 'c9', category: '분량/형식', text: '정의 문장: “~란 무엇인가” 포함' },
-  { id: 'c10', category: '본문 구조(하단)', text: 'FAQ: 최소 4~5개 이상' },
+  { id: 'c10', category: '본문 구조(하단)', text: 'FAQ: 최소 3~4개 이상' },
   { id: 'c11', category: '태그 구조', text: 'H1 존재: 1개만 존재' },
   { id: 'c12', category: '태그 구조', text: 'H1 내용: 핵심 키워드 포함' },
   { id: 'c13', category: '태그 구조', text: 'H2 개수: 2~3개 사용' },

@@ -100,7 +100,7 @@ const DEFAULT_SEO_GUIDE = `당신은 교육 회사의 Google SEO + GEO 최적화
 
 export async function POST(req: Request) {
   try {
-    const { mainKeyword, subKeywords, relatedKeywords, selectedTopic, lectureInfo, usps, target, seoGuide } = await req.json();
+    const { mainKeyword, subKeywords, relatedKeywords, selectedTopic, lectureInfo, usps, target, seoGuide, useSearch } = await req.json();
 
     const systemPrompt = seoGuide && seoGuide.trim().length > 0 ? seoGuide : DEFAULT_SEO_GUIDE;
 
@@ -142,11 +142,11 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({ 
       model: "gemini-3.1-flash-lite-preview",
       systemInstruction: systemPrompt,
-      tools: [
+      tools: useSearch ? [
         {
-          googleSearch: {}, // Google AI SDK(AI Studio) 방식의 Grounding 도구 설정
+          googleSearch: {}, // Google AI SDK(AI Studio) 방식의 Grounding 도구 설정 (사용자 선택 시에만 활성화)
         } as any,
-      ],
+      ] : [],
     });
 
     const result = await model.generateContentStream(userPrompt);
@@ -161,24 +161,29 @@ export async function POST(req: Request) {
           }
 
           // 2. 스트림 종료 후 Grounding 메타데이터(출처) 추출
-          const finalResponse = await result.response;
-          const candidate = finalResponse.candidates?.[0];
-          
-          if (candidate?.groundingMetadata) {
-            const metadata = candidate.groundingMetadata;
-            // 출처(Chunks) 정보를 클라이언트가 파싱하기 쉽게 특정 구분자와 함께 전송
-            // groundingChunks 또는 searchEntryPoint 정보를 활용
-            const sources = metadata.groundingChunks?.map((chunk: any) => ({
-              title: chunk.web?.title || "출처",
-              url: chunk.web?.uri || "#"
-            })).filter((s: any) => s.url !== "#") || [];
+          if (useSearch) {
+            const finalResponse = await result.response;
+            const candidate = finalResponse.candidates?.[0];
+            
+            if (candidate?.groundingMetadata) {
+              const metadata = candidate.groundingMetadata;
+              const sources = metadata.groundingChunks?.map((chunk: any) => ({
+                title: chunk.web?.title || "출처",
+                url: chunk.web?.uri || "#"
+              })).filter((s: any) => s.url !== "#") || [];
 
-            if (sources.length > 0) {
-              const sourcesJson = JSON.stringify(sources);
-              controller.enqueue(new TextEncoder().encode(`\n\nSOURCES_JSON:${sourcesJson}`));
+              if (sources.length > 0) {
+                const sourcesJson = JSON.stringify(sources);
+                controller.enqueue(new TextEncoder().encode(`\n\nSOURCES_JSON:${sourcesJson}`));
+              }
             }
           }
-        } catch(e) {
+        } catch(e: any) {
+          console.error("Stream individual chunk error:", e);
+          // 429 에러 등은 여기서 발생할 수도 있음
+          if (e.message?.includes("429")) {
+            controller.enqueue(new TextEncoder().encode("\n\n(API 할당량이 초과되었습니다. 잠시 후 다시 시도하거나 실시간 검색 옵션을 끄고 생성해 주세요.)"));
+          }
           controller.error(e);
         } finally {
           controller.close();
@@ -189,6 +194,9 @@ export async function POST(req: Request) {
     return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   } catch (error: any) {
     console.error("Generate API Error:", error);
+    if (error.message?.includes("429")) {
+      return new Response(JSON.stringify({ error: "API 할당량이 초과되었습니다. 잠시 후 다시 시도하거나 실시간 검색 옵션을 끄고 생성해 주세요. (Tip: 실시간 검색은 쿼터 소모가 많으므로 꼭 필요할 때만 켜주세요.)" }), { status: 429 });
+    }
     return new Response(JSON.stringify({ error: `Failed to generate content: ${error.message}` }), { status: 500 });
   }
 }

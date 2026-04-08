@@ -17,6 +17,7 @@ function TopicsContent() {
   const [selectedTopic, setSelectedTopic] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [useSearch, setUseSearch] = useState(false);
 
   const fetchTopics = async () => {
     setLoading(true);
@@ -64,6 +65,7 @@ function TopicsContent() {
     currentParams.set("topicDirection", topic.direction);
     currentParams.set("topicHook", topic.hook);
     currentParams.set("topicCtr", topic.ctrPoint);
+    currentParams.set("useSearch", useSearch.toString());
     router.push(`/editor?${currentParams.toString()}`);
   };
 
@@ -139,9 +141,21 @@ function TopicsContent() {
         </div>
       )}
 
-      {/* Regenerate Button Section */}
+      {/* Regenerate Button Section & Grounding Toggle */}
       {!loading && !errorMsg && topics.length > 0 && (
-        <div className="flex justify-center mb-10">
+        <div className="flex flex-col items-center gap-6 mb-12">
+          {/* Grounding Toggle */}
+          <div className="flex items-center gap-3 bg-white/5 px-6 py-4 rounded-[24px] border border-white/5 hover:bg-white/10 transition-all cursor-pointer select-none"
+               onClick={() => setUseSearch(!useSearch)}>
+            <div className={`w-10 h-6 rounded-full relative transition-colors duration-300 ${useSearch ? 'bg-[#3182f6]' : 'bg-white/10'}`}>
+              <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${useSearch ? 'translate-x-4' : ''}`}></div>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[13px] font-extrabold text-white">실시간 검색 기반 정보 강화 (Grounding)</span>
+              <span className="text-[11px] text-gray-500">최신 뉴스, 통계 등 실시간 정보를 글에 반영합니다. (할당량 소모가 많습니다)</span>
+            </div>
+          </div>
+
           <button 
             onClick={fetchTopics}
             disabled={loading}

@@ -58,6 +58,7 @@ function EditorContent() {
   const mainKeyword = searchParams.get("mainKeyword") || "";
   const subKeywords = searchParams.get("subKeywords")?.split(",") || [];
   const relatedKeywords = searchParams.get("relatedKeywords")?.split(",") || [];
+  const useSearch = searchParams.get("useSearch") === "true";
 
   const hasStarted = useRef(false);
 
@@ -90,9 +91,15 @@ function EditorContent() {
           lectureInfo: courseName,
           usps,
           target,
-          seoGuide
+          seoGuide,
+          useSearch
         })
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "글 생성 중 오류가 발생했습니다.");
+      }
 
       if (!res.body) throw new Error("No response body");
 
@@ -124,9 +131,9 @@ function EditorContent() {
           setContent(generatedText);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setContent("글 생성 중 오류가 발생했습니다. 다시 시도해 주세요.");
+      setContent(error.message || "글 생성 중 오류가 발생했습니다. 다시 시도해 주세요.");
       setIsGenerating(false);
       setDone(true);
       return;

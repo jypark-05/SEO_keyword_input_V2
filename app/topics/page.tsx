@@ -18,37 +18,41 @@ function TopicsContent() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  useEffect(() => {
-    const fetchTopics = async () => {
-      try {
-        const res = await fetch("/api/topics", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-             courseName: searchParams.get("courseName"),
-             usps: [searchParams.get("usp1"), searchParams.get("usp2"), searchParams.get("usp3")],
-             target: searchParams.get("target"),
-             topicType: searchParams.get("topicType"),
-             mainKeyword: searchParams.get("mainKeyword"),
-             subKeywords: searchParams.get("subKeywords")?.split(",") || []
-          })
-        });
-        const data = await res.json();
-        
-        if (!res.ok) {
-          setErrorMsg(data.error || "API 호출 중 오류가 발생했습니다.");
-        } else if (!data.topics || data.topics.length === 0) {
-          setErrorMsg("주제를 기획하지 못했습니다. 할당량이 초과되었거나 응답 형식이 잘못되었습니다.");
-        } else {
-          setTopics(data.topics);
-        }
-      } catch (error) {
-        console.error(error);
-        setErrorMsg("서버와의 통신에 실패했습니다.");
-      } finally {
-        setLoading(false);
+  const fetchTopics = async () => {
+    setLoading(true);
+    setErrorMsg("");
+    setSelectedTopic(null);
+    try {
+      const res = await fetch("/api/topics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+           courseName: searchParams.get("courseName"),
+           usps: [searchParams.get("usp1"), searchParams.get("usp2"), searchParams.get("usp3")],
+           target: searchParams.get("target"),
+           topicType: searchParams.get("topicType"),
+           mainKeyword: searchParams.get("mainKeyword"),
+           subKeywords: searchParams.get("subKeywords")?.split(",") || []
+        })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setErrorMsg(data.error || "API 호출 중 오류가 발생했습니다.");
+      } else if (!data.topics || data.topics.length === 0) {
+        setErrorMsg("주제를 기획하지 못했습니다. 할당량이 초과되었거나 응답 형식이 잘못되었습니다.");
+      } else {
+        setTopics(data.topics);
       }
-    };
+    } catch (error) {
+      console.error(error);
+      setErrorMsg("서버와의 통신에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (searchParams.get("mainKeyword")) fetchTopics();
   }, [searchParams]);
 
@@ -67,7 +71,20 @@ function TopicsContent() {
     <div className="flex-1 max-w-4xl mx-auto w-full px-6 py-12">
       <div className="text-center mb-10">
         <h1 className="text-3xl font-bold tracking-tight mb-3 text-white">블로그 주제 선택</h1>
-        <p className="text-gray-400 text-sm">AI가 기획한 3가지 글의 방향성 중 가장 마음에 드는 것을 선택하세요.</p>
+        <p className="text-gray-400 text-sm mb-6">AI가 기획한 3가지 글의 방향성 중 가장 마음에 드는 것을 선택하세요.</p>
+        
+        {!loading && !errorMsg && topics.length > 0 && (
+          <button 
+            onClick={fetchTopics}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-gray-400 text-[13px] font-bold hover:bg-white/10 hover:text-white transition-all active:scale-95"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            마음에 드는 주제가 없나요? (새로 생성하기)
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -76,8 +93,16 @@ function TopicsContent() {
            <p className="text-sm text-gray-400 font-medium">최고의 주제를 고민 중...</p>
         </div>
       ) : errorMsg ? (
-        <div className="text-[#ff453a] font-medium text-center p-6 border border-[#ff453a]/30 rounded-2xl bg-[#ff453a]/10 mb-8">
-          ⚠️ {errorMsg}
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-full text-[#ff453a] font-medium text-center p-6 border border-[#ff453a]/30 rounded-2xl bg-[#ff453a]/10">
+            ⚠️ {errorMsg}
+          </div>
+          <button 
+            onClick={fetchTopics}
+            className="px-6 py-3 rounded-2xl bg-white/10 text-white font-bold hover:bg-white/20 transition-all"
+          >
+            다시 시도하기
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 mb-12">

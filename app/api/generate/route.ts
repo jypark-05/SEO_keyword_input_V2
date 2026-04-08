@@ -139,48 +139,82 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3.1-flash-lite-preview",
-      systemInstruction: systemPrompt,
-      tools: useSearch ? [
-        {
-          googleSearch: {}, // Google AI SDK(AI Studio) 방식의 Grounding 도구 설정 (사용자 선택 시에만 활성화)
-        } as any,
-      ] : [],
-    });
-
-    const result = await model.generateContentStream(userPrompt);
-
+    
     const stream = new ReadableStream({
       async start(controller) {
+        let gatheredFacts = "";
+        let gatheredSources: any[] = [];
+
         try {
-          // 1. 텍스트 스트리밍
+          // [Step 1] 검색 단계 (useSearch가 활성화된 경우)
+          if (useSearch) {
+            controller.enqueue(new TextEncoder().encode("*(실시간 검색을 통해 최신 정보를 확인하고 있습니다...)*\n\n"));
+            
+            const searchModel = genAI.getGenerativeModel({ 
+              model: "gemini-2.0-flash-exp", // 쿼터가 넉넉한 모델로 검색 수행
+              tools: [{ googleSearch: {} }] as any,
+            });
+
+            const searchQuery = `다음 주제와 관련된 최신 트렌드, 뉴스, 통계 등을 검색해서 핵심 내용만 요약해줘: ${mainKeyword} (${selectedTopic.title})`;
+            const searchResult = await searchModel.generateContent(searchQuery);
+            const searchResponse = await searchResult.response;
+            
+            gatheredFacts = searchResponse.text();
+            
+            // 검색 출처 추출
+            const candidate = searchResponse.candidates?.[0];
+            if (candidate?.groundingMetadata) {
+              gatheredSources = candidate.groundingMetadata.groundingChunks?.map((chunk: any) => ({
+                title: chunk.web?.title || "출처",
+                url: chunk.web?.uri || "#"
+              })).filter((s: any) => s.url !== "#") || [];
+            }
+            
+            controller.enqueue(new TextEncoder().encode("*(정보 수집 완료! 블로그 작성을 시작합니다...)*\n\n"));
+          }
+
+          // [Step 2] 작성 단계 (메인 모델 호출)
+          const writerModel = genAI.getGenerativeModel({ 
+            model: "gemini-3.1-flash-lite-preview",
+            systemInstruction: systemPrompt,
+          });
+
+          const finalUserPrompt = `
+[수집된 실시간 정보]
+${gatheredFacts || "없음 (일반 지식 기반 작성)"}
+
+[출처 목록]
+${gatheredSources.map(s => `- ${s.title}: ${s.url}`).join("\n") || "없음"}
+
+---
+위 실시간 정보를 반드시 반영하여 아래 변수를 바탕으로 블로그 글을 작성해주세요.
+
+[변수]
+- mainKeyword: ${mainKeyword}
+- subKeywords: ${subKeywords.join(", ")}
+- relatedKeywords: ${(relatedKeywords || []).join(", ")} (지시: 본문에 각 연관 키워드 최소 3번 이상 포함)
+- selectedTopic: 제목("${selectedTopic.title}"), 방향성("${selectedTopic.direction}"), 훅("${selectedTopic.hook}")
+- lectureInfo: ${lectureInfo}
+- usps: 1. ${usps[0]}, 2. ${usps[1]}, 3. ${usps[2]}
+- target: ${target}
+`;
+
+          const result = await writerModel.generateContentStream(finalUserPrompt);
+
+          // 텍스트 스트리밍
           for await (const chunk of result.stream) {
             const chunkText = chunk.text();
             controller.enqueue(new TextEncoder().encode(chunkText));
           }
 
-          // 2. 스트림 종료 후 Grounding 메타데이터(출처) 추출
-          if (useSearch) {
-            const finalResponse = await result.response;
-            const candidate = finalResponse.candidates?.[0];
-            
-            if (candidate?.groundingMetadata) {
-              const metadata = candidate.groundingMetadata;
-              const sources = metadata.groundingChunks?.map((chunk: any) => ({
-                title: chunk.web?.title || "출처",
-                url: chunk.web?.uri || "#"
-              })).filter((s: any) => s.url !== "#") || [];
-
-              if (sources.length > 0) {
-                const sourcesJson = JSON.stringify(sources);
-                controller.enqueue(new TextEncoder().encode(`\n\nSOURCES_JSON:${sourcesJson}`));
-              }
-            }
+          // 검색 출처 데이터 전달 (클라이언트 표시용)
+          if (gatheredSources.length > 0) {
+            const sourcesJson = JSON.stringify(gatheredSources);
+            controller.enqueue(new TextEncoder().encode(`\n\nSOURCES_JSON:${sourcesJson}`));
           }
+
         } catch(e: any) {
-          console.error("Stream individual chunk error:", e);
-          // 429 에러 등은 여기서 발생할 수도 있음
+          console.error("2-Step processing error:", e);
           if (e.message?.includes("429")) {
             controller.enqueue(new TextEncoder().encode("\n\n(API 할당량이 초과되었습니다. 잠시 후 다시 시도하거나 실시간 검색 옵션을 끄고 생성해 주세요.)"));
           }

@@ -6,10 +6,21 @@ import ProgressBar from "@/components/ProgressBar";
 function KeywordsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [mainKeyword, setMainKeyword] = useState("");
-  const [sub1, setSub1] = useState("");
-  const [sub2, setSub2] = useState("");
-  const [sub3, setSub3] = useState("");
+  
+  // URL에서 초기값 가져오기
+  const urlMain = searchParams.get("mainKeyword") || "";
+  const urlSubsRaw = searchParams.get("subKeywords") || "[]";
+  let urlSubs: string[] = [];
+  try {
+    urlSubs = JSON.parse(urlSubsRaw);
+  } catch (e) {
+    urlSubs = urlSubsRaw.split(",");
+  }
+
+  const [mainKeyword, setMainKeyword] = useState(urlMain);
+  const [sub1, setSub1] = useState(urlSubs[0] || "");
+  const [sub2, setSub2] = useState(urlSubs[1] || "");
+  const [sub3, setSub3] = useState(urlSubs[2] || "");
   const [loadingRelated, setLoadingRelated] = useState(false);
 
   const handleNext = async () => {

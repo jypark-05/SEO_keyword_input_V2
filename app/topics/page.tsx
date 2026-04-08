@@ -126,11 +126,18 @@ function TopicsContent() {
         </div>
       )}
 
-      <div className="flex justify-center">
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+        <button 
+          onClick={() => router.push(`/?${searchParams.toString()}`)}
+          className="w-full max-w-xs py-4 rounded-[20px] font-bold text-[15px] transition-all flex justify-center items-center gap-2 bg-[#1c1c1e] text-gray-400 border border-white/5 hover:bg-white/5 active:scale-[0.98]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          이전 단계로
+        </button>
         <button 
           onClick={handleNext} 
           disabled={selectedTopic === null || loading}
-          className={`w-full max-w-sm py-4 rounded-[20px] font-bold text-[15px] transition-all flex justify-center items-center gap-2
+          className={`w-full max-w-xs py-4 rounded-[20px] font-bold text-[15px] transition-all flex justify-center items-center gap-2
             ${selectedTopic !== null 
               ? 'bg-[#3182f6] text-white hover:bg-[#1b64da] active:scale-[0.98] shadow-[0_8px_30px_rgba(49,130,246,0.3)]' 
               : 'bg-[#1c1c1e] text-gray-600 cursor-not-allowed border border-white/5'}`}

@@ -141,7 +141,12 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
       model: "gemini-3.1-flash-lite-preview",
-      systemInstruction: systemPrompt 
+      systemInstruction: systemPrompt,
+      tools: [
+        {
+          googleSearch: {}, // Google AI SDK(AI Studio) 방식의 Grounding 도구 설정
+        } as any,
+      ],
     });
 
     const result = await model.generateContentStream(userPrompt);
@@ -149,9 +154,29 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // 1. 텍스트 스트리밍
           for await (const chunk of result.stream) {
             const chunkText = chunk.text();
             controller.enqueue(new TextEncoder().encode(chunkText));
+          }
+
+          // 2. 스트림 종료 후 Grounding 메타데이터(출처) 추출
+          const finalResponse = await result.response;
+          const candidate = finalResponse.candidates?.[0];
+          
+          if (candidate?.groundingMetadata) {
+            const metadata = candidate.groundingMetadata;
+            // 출처(Chunks) 정보를 클라이언트가 파싱하기 쉽게 특정 구분자와 함께 전송
+            // groundingChunks 또는 searchEntryPoint 정보를 활용
+            const sources = metadata.groundingChunks?.map((chunk: any) => ({
+              title: chunk.web?.title || "출처",
+              url: chunk.web?.uri || "#"
+            })).filter((s: any) => s.url !== "#") || [];
+
+            if (sources.length > 0) {
+              const sourcesJson = JSON.stringify(sources);
+              controller.enqueue(new TextEncoder().encode(`\n\nSOURCES_JSON:${sourcesJson}`));
+            }
           }
         } catch(e) {
           controller.error(e);

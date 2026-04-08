@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ProgressBar from "@/components/ProgressBar";
 
 const SEO_CHECKLIST = [
@@ -34,10 +34,13 @@ const groupedChecklist = SEO_CHECKLIST.reduce((acc, item) => {
 
 function EditorContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [content, setContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [done, setDone] = useState(false);
+  const [activeTab, setActiveTab] = useState<"editor" | "guide">("editor");
+  const [groundingSources, setGroundingSources] = useState<any[]>([]);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [savedDocUrl, setSavedDocUrl] = useState<string | null>(null);
@@ -100,8 +103,26 @@ function EditorContent() {
         const { value, done: doneReading } = await reader.read();
         if (doneReading) break;
         const chunk = decoder.decode(value, { stream: true });
-        generatedText += chunk;
-        setContent(generatedText);
+        
+        // SOURCES_JSON 체크 (스트림 마지막에 전달됨)
+        if (chunk.includes("SOURCES_JSON:")) {
+          const parts = chunk.split("SOURCES_JSON:");
+          const textPart = parts[0];
+          const jsonPart = parts[1];
+          
+          generatedText += textPart;
+          setContent(generatedText);
+          
+          try {
+            const sources = JSON.parse(jsonPart);
+            setGroundingSources(sources);
+          } catch (e) {
+            console.error("Failed to parse sources JSON", e);
+          }
+        } else {
+          generatedText += chunk;
+          setContent(generatedText);
+        }
       }
     } catch (error) {
       console.error(error);
@@ -231,17 +252,28 @@ function EditorContent() {
               <h1 className="text-xl font-bold tracking-tight text-white mb-0.5">블로그 에디터</h1>
               <p className="text-[11px] text-gray-400 font-medium">마크다운 형식을 지원합니다.</p>
             </div>
-            <button
-              onClick={copyToClipboard}
-              disabled={!done}
-              className={`px-5 py-2.5 rounded-[18px] font-bold text-[13px] transition-all flex items-center gap-2
-                ${done ? 'bg-[#3182f6] text-white hover:bg-[#1b64da] active:scale-95 shadow-[0_4px_15px_rgba(49,130,246,0.25)]' : 'bg-white/5 text-gray-500 cursor-not-allowed'}`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              복사하기
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push(`/topics?${searchParams.toString()}`)}
+                className="px-4 py-2.5 rounded-[18px] font-bold text-[13px] text-gray-400 hover:text-white border border-white/5 hover:bg-white/5 transition-all flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                주제 다시 선택
+              </button>
+              <button
+                onClick={copyToClipboard}
+                disabled={!done}
+                className={`px-5 py-2.5 rounded-[18px] font-bold text-[13px] transition-all flex items-center gap-2
+                  ${done ? 'bg-[#3182f6] text-white hover:bg-[#1b64da] active:scale-95 shadow-[0_4px_15px_rgba(49,130,246,0.25)]' : 'bg-white/5 text-gray-500 cursor-not-allowed'}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                복사하기
+              </button>
+            </div>
           </div>
 
           {isGenerating && (
@@ -258,13 +290,43 @@ function EditorContent() {
             }
           `}} />
 
-          <textarea
-            className="w-full flex-1 p-8 bg-transparent text-[#f5f5f7] outline-none resize-none font-sans text-[15px] leading-relaxed placeholder-gray-600"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="AI가 블로그 내용을 작성하고 있습니다..."
-          />
-        </div>
+            <textarea
+              className="w-full flex-1 p-8 bg-transparent text-[#f5f5f7] outline-none resize-none font-sans text-[15px] leading-relaxed placeholder-gray-600"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="AI가 블로그 내용을 작성하고 있습니다..."
+            />
+
+            {/* Grounding Sources (실시간 검색 출처) */}
+            {groundingSources.length > 0 && (
+              <div className="mx-8 mb-8 pt-6 border-t border-white/5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3182f6]/10">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-[#3182f6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-400">검증된 실시간 검색 소스</h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {groundingSources.map((source, idx) => (
+                    <a 
+                      key={idx}
+                      href={source.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-full bg-white/5 border border-white/5 text-[11px] text-gray-500 hover:text-[#3182f6] hover:border-[#3182f6]/30 transition-all flex items-center gap-1.5"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      {source.title.length > 30 ? source.title.substring(0, 30) + "..." : source.title}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
         {/* Sidebar Info */}
         <div className="w-full md:w-80 flex flex-col gap-4">

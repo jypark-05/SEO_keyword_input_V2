@@ -150,27 +150,34 @@ export async function POST(req: Request) {
           if (useSearch) {
             controller.enqueue(new TextEncoder().encode("*(실시간 검색을 통해 최신 정보를 확인하고 있습니다...)*\n\n"));
             
-            const searchModel = genAI.getGenerativeModel({ 
-              model: "gemini-2.0-flash-exp", // 쿼터가 넉넉한 모델로 검색 수행
-              tools: [{ googleSearch: {} }] as any,
-            });
+            try {
+              const searchModel = genAI.getGenerativeModel({ 
+                model: "gemini-1.5-flash", // 좀 더 안정적인 1.5-flash 모델로 검색 수행
+                tools: [{ googleSearch: {} }] as any,
+              });
 
-            const searchQuery = `다음 주제와 관련된 최신 트렌드, 뉴스, 통계 등을 검색해서 핵심 내용만 요약해줘: ${mainKeyword} (${selectedTopic.title})`;
-            const searchResult = await searchModel.generateContent(searchQuery);
-            const searchResponse = await searchResult.response;
-            
-            gatheredFacts = searchResponse.text();
-            
-            // 검색 출처 추출
-            const candidate = searchResponse.candidates?.[0];
-            if (candidate?.groundingMetadata) {
-              gatheredSources = candidate.groundingMetadata.groundingChunks?.map((chunk: any) => ({
-                title: chunk.web?.title || "출처",
-                url: chunk.web?.uri || "#"
-              })).filter((s: any) => s.url !== "#") || [];
+              const searchQuery = `다음 주제와 관련된 최신 트렌드, 뉴스, 통계 등을 검색해서 핵심 내용만 요약해줘: ${mainKeyword} (${selectedTopic.title})`;
+              const searchResult = await searchModel.generateContent(searchQuery);
+              const searchResponse = await searchResult.response;
+              
+              gatheredFacts = searchResponse.text();
+              
+              // 검색 출처 추출
+              const candidate = searchResponse.candidates?.[0];
+              if (candidate?.groundingMetadata) {
+                gatheredSources = candidate.groundingMetadata.groundingChunks?.map((chunk: any) => ({
+                  title: chunk.web?.title || "출처",
+                  url: chunk.web?.uri || "#"
+                })).filter((s: any) => s.url !== "#") || [];
+              }
+              
+              controller.enqueue(new TextEncoder().encode("*(정보 수집 완료! 블로그 작성을 시작합니다...)*\n\n"));
+            } catch (searchError: any) {
+              console.error("Search Phase Error:", searchError);
+              const errorMsg = searchError.message || "알 수 없는 오류";
+              controller.enqueue(new TextEncoder().encode(`*(참고: 실시간 정보 수집 중 오류가 발생했습니다: ${errorMsg}. 일반 지식 기반으로 작성을 계속합니다...)*\n\n`));
+              // 검색은 실패해도 글쓰기는 계속 진행함
             }
-            
-            controller.enqueue(new TextEncoder().encode("*(정보 수집 완료! 블로그 작성을 시작합니다...)*\n\n"));
           }
 
           // [Step 2] 작성 단계 (메인 모델 호출)

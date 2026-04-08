@@ -73,18 +73,6 @@ function TopicsContent() {
         <h1 className="text-3xl font-bold tracking-tight mb-3 text-white">블로그 주제 선택</h1>
         <p className="text-gray-400 text-sm mb-6">AI가 기획한 3가지 글의 방향성 중 가장 마음에 드는 것을 선택하세요.</p>
         
-        {!loading && !errorMsg && topics.length > 0 && (
-          <button 
-            onClick={fetchTopics}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-gray-400 text-[13px] font-bold hover:bg-white/10 hover:text-white transition-all active:scale-95"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            마음에 드는 주제가 없나요? (새로 생성하기)
-          </button>
-        )}
       </div>
 
       {loading ? (
@@ -148,6 +136,27 @@ function TopicsContent() {
                </div>
              )
           })}
+        </div>
+      )}
+
+      {/* Regenerate Button Section */}
+      {!loading && !errorMsg && topics.length > 0 && (
+        <div className="flex justify-center mb-10">
+          <button 
+            onClick={fetchTopics}
+            disabled={loading}
+            className="group flex flex-col items-center gap-2 p-6 rounded-[24px] bg-[#1c1c1e] border border-dashed border-white/20 hover:border-[#3182f6]/50 hover:bg-[#3182f6]/5 transition-all w-full max-w-sm"
+          >
+            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#3182f6]/20 transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-gray-400 group-hover:text-[#3182f6] ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <p className="text-[14px] font-bold text-gray-300 group-hover:text-white">마음에 드는 주제가 없나요?</p>
+              <p className="text-[12px] text-gray-500 group-hover:text-[#3182f6]">다른 주제 3가지 새로 제안받기</p>
+            </div>
+          </button>
         </div>
       )}
 

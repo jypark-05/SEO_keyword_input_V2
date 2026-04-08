@@ -146,7 +146,7 @@ function TopicsContent() {
 export default function TopicsPage() {
   return (
     <main className="min-h-screen flex flex-col bg-black">
-      <ProgressBar step={3} />
+      <ProgressBar step={2} />
       <Suspense fallback={<div className="p-10 text-center text-gray-500">로딩 중...</div>}>
          <TopicsContent />
       </Suspense>

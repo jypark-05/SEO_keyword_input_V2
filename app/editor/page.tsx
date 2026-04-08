@@ -498,7 +498,7 @@ function EditorContent() {
 export default function EditorPage() {
   return (
     <main className="min-h-screen flex flex-col bg-black">
-      <ProgressBar step={4} />
+      <ProgressBar step={3} />
       <Suspense fallback={<div className="p-10 text-center text-gray-500">로딩 중...</div>}>
         <EditorContent />
       </Suspense>

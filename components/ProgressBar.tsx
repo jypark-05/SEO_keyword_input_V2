@@ -1,5 +1,5 @@
 export default function ProgressBar({ step }: { step: number }) {
-  const steps = ["기본 정보", "키워드 추출", "주제 기획", "콘텐츠 생성"];
+  const steps = ["정보 및 키워드", "주제 선택", "콘텐츠 생성"];
   return (
     <div className="w-full pt-8 pb-4">
       <div className="max-w-3xl mx-auto px-6">
@@ -7,7 +7,7 @@ export default function ProgressBar({ step }: { step: number }) {
           <div className="absolute top-1/2 left-0 w-full h-1.5 bg-[#1c1c1e] -z-10 rounded-full transform -translate-y-1/2"></div>
           <div 
             className="absolute top-1/2 left-0 h-1.5 bg-[#3182f6] -z-10 rounded-full transform -translate-y-1/2 transition-all duration-500 ease-in-out" 
-            style={{ width: `${((step - 1) / 3) * 100}%` }}
+            style={{ width: `${((step - 1) / 2) * 100}%` }}
           ></div>
           
           {steps.map((s, i) => {

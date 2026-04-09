@@ -416,6 +416,8 @@ function EditorContent() {
       } else if (trimmed.startsWith('## ')) {
         // H2에 굵기와 포인트 컬러(#FC1C49) 적용
         htmlOutput += `<span class="fc-h2" style="color: #FC1C49"><b>${trimmed.replace(/^## /, '').trim()}</b></span><br>`; 
+      } else if (trimmed.startsWith('### 글 미리보기')) {
+        htmlOutput += `<span class="fc-h2"><b>글 미리보기</b></span><br><br>`;
       } else if (trimmed.startsWith('### ')) {
         htmlOutput += `<span class="fc-h2"><b>${trimmed.replace(/^### /, '').trim()}</b></span><br>`; 
       } else if (trimmed.startsWith('#### ')) {
@@ -447,9 +449,21 @@ function EditorContent() {
     const flush = (nextTitle: string) => {
       const mdContent = currentLines.join('\n').trim();
       if (mdContent) {
+        let htmlContent = convertToHtmlText(mdContent).trim();
+
+        // 미리보기 섹션 폰트 스타일 감싸기
+        if (currentTitle.includes("글 미리보기")) {
+          htmlContent = `<div style="line-height:30px; font-size:130%;">\n${htmlContent}\n</div>`;
+        }
+
+        // 1번(제목 및 해시태그)을 제외한 모든 섹션에 앞뒤 <br> 추가
+        if (currentTitle !== "🏷️ 제목 및 해시태그") {
+          htmlContent = `<br>\n${htmlContent}\n<br>`;
+        }
+
         sections.push({
           title: currentTitle,
-          html: convertToHtmlText(mdContent).trim()
+          html: htmlContent
         });
       }
       currentLines = [];

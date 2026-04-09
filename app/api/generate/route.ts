@@ -61,7 +61,7 @@ const DEFAULT_SEO_GUIDE = `당신은 교육 회사의 Google SEO + GEO 최적화
 
 [출처 수집 조건]
 - 수집 기간: 2022년 1월 이후 ~ 현재까지 발행된 자료만 허용
-- 최소 출처 수: 공신력 있는 출처 5개 이상 반드시 활용
+- 최소 출처 수: 공신력 있는 고품질 출처 3개 이상 반드시 활용
 - 허용 출처 유형 (우선순위 순):
   1. 국내외 학술 논문 (Google Scholar, RISS, DBpia, PubMed 등)
   2. 정부/공공기관 공식 발표 자료 (고용노동부, 교육부, 통계청 등)
@@ -77,7 +77,7 @@ const DEFAULT_SEO_GUIDE = `당신은 교육 회사의 Google SEO + GEO 최적화
 
 [출처 검증 체크리스트]
 작성 완료 후 아래 항목을 자체 검토하세요.
-- [ ] 2022년 이후 출처가 5개 이상 활용되었는가?
+- [ ] 2022년 이후 출처가 3개 이상 활용되었는가?
 - [ ] 각 출처는 논문/공공기관/주요 언론 중 하나에 해당하는가?
 - [ ] 수치/통계 데이터에 모두 출처가 명시되었는가?
 - [ ] 출처가 본문 흐름에 자연스럽게 녹아있는가?
@@ -89,7 +89,7 @@ const DEFAULT_SEO_GUIDE = `당신은 교육 회사의 Google SEO + GEO 최적화
 ## 참고 자료
 1. [출처명] (발행연도) — 제목 또는 URL
 2. [출처명] (발행연도) — 제목 또는 URL
-... (최소 5개 이상)
+... (최소 3개 이상)
 ---
 
 [출처 신뢰성 주의사항]
@@ -149,8 +149,6 @@ export async function POST(req: Request) {
         try {
           // [Step 1] 검색 단계 (useSearch가 활성화된 경우)
           if (useSearch) {
-            controller.enqueue(new TextEncoder().encode("*(실시간 검색을 통해 최신 정보를 확인하고 있습니다...)*\n\n"));
-            
             try {
               // Tavily API를 사용한 실시간 검색 및 요약
               const tavilyApiKey = process.env.TAVILY_API_KEY;
@@ -193,12 +191,8 @@ export async function POST(req: Request) {
               } else {
                 gatheredFacts = "관련된 최신 검색 결과를 찾지 못했습니다.";
               }
-              
-              controller.enqueue(new TextEncoder().encode("*(정보 수집 완료! 블로그 작성을 시작합니다...)*\n\n"));
             } catch (searchError: any) {
               console.error("Search Phase Error:", searchError);
-              const errorMsg = searchError.message || "알 수 없는 오류";
-              controller.enqueue(new TextEncoder().encode(`*(참고: 실시간 정보 수집 중 오류가 발생했습니다: ${errorMsg}. 일반 지식 기반으로 작성을 계속합니다...)*\n\n`));
               // 검색은 실패해도 글쓰기는 계속 진행함
             }
           }

@@ -153,17 +153,16 @@ export async function POST(req: Request) {
             
             try {
               const searchModel = genAI.getGenerativeModel({ 
-                model: "gemini-2.0-flash-exp", // 사용자 요청에 따라 2.0 모델로 원복
+                model: "gemini-3.1-flash-lite-preview",
                 tools: [{ googleSearch: {} }] as any,
               });
 
-              const searchQuery = `다음 주제와 관련된 최신 트렌드, 뉴스, 통계 등을 검색해서 핵심 내용만 요약해줘: ${mainKeyword} (${selectedTopic.title})`;
+              const searchQuery = `다음 주제와 관련된 최신 트렌드/뉴스/핵심 내용을 검색해서 요약해줘: ${mainKeyword} (${selectedTopic.title})`;
               const searchResult = await searchModel.generateContent(searchQuery);
               const searchResponse = await searchResult.response;
               
               gatheredFacts = searchResponse.text();
               
-              // 검색 출처 추출
               const candidate = searchResponse.candidates?.[0];
               if (candidate?.groundingMetadata) {
                 gatheredSources = candidate.groundingMetadata.groundingChunks?.map((chunk: any) => ({

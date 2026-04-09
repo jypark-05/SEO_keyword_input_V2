@@ -153,12 +153,19 @@ export async function POST(req: Request) {
             
             try {
               // Tavily API를 사용한 실시간 검색 및 요약
+              const tavilyApiKey = process.env.TAVILY_API_KEY;
+              if (!tavilyApiKey) {
+                throw new Error("TAVILY_API_KEY 환경변수가 설정되지 않았습니다. 서버를 재시작했는지 확인해주세요.");
+              }
+
               const searchQuery = `${mainKeyword} 트렌드 및 최신 정보: ${selectedTopic.title}`;
               const tavilyResponse = await fetch("https://api.tavily.com/search", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${tavilyApiKey}`
+                },
                 body: JSON.stringify({
-                  api_key: process.env.TAVILY_API_KEY,
                   query: searchQuery,
                   search_depth: "basic",
                   include_answer: true,

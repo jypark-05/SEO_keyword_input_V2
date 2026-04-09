@@ -12,7 +12,7 @@ const SEO_CHECKLIST = [
   { id: 'c7', category: '분량/형식', text: '글자 수: 3,000자 이상' },
   { id: 'c8', category: '분량/형식', text: '문단 구조: 문단/리스트 적절' },
   { id: 'c9', category: '분량/형식', text: '정의 문장: “~란 무엇인가” 포함' },
-  { id: 'c10', category: '본문 구조(하단)', text: 'FAQ: 최소 3~4개 이상' },
+  { id: 'c10', category: '본문 구조(하단)', text: 'FAQ: 5개 이상' },
   { id: 'c11', category: '태그 구조', text: 'H1 존재: 1개만 존재' },
   { id: 'c12', category: '태그 구조', text: 'H1 내용: 핵심 키워드 포함' },
   { id: 'c13', category: '태그 구조', text: 'H2 개수: 2~3개 사용' },
@@ -22,7 +22,7 @@ const SEO_CHECKLIST = [
   { id: 'c17', category: 'E-E-A-T 요건', text: 'Expertise(2): 작성자 또는 브랜드 정보가 명확한가?' },
   { id: 'c18', category: 'E-E-A-T 요건', text: 'Authoritativeness: 동일 주제 콘텐츠와 내부 링크로 연결되었는가?' },
   { id: 'c19', category: 'E-E-A-T 요건', text: 'Trustworthiness: 최신 정보 기준으로 작성/수정되었는가?' },
-  { id: 'c20', category: '신뢰성 강화', text: '최신 출처: 2022년 이후 출처 5개 이상 활용' },
+  { id: 'c20', category: '신뢰성 강화', text: '최신 출처: 2022년 이후 고품질 출처 3개 이상 활용' },
   { id: 'c21', category: '신뢰성 강화', text: '참고 자료: 문서 하단에 참고 자료 리스트 포함' },
 ];
 
@@ -40,6 +40,7 @@ function EditorContent() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [done, setDone] = useState(false);
   const [activeTab, setActiveTab] = useState<"editor" | "guide">("editor");
+  const [format, setFormat] = useState<"markdown" | "html">("markdown");
   const [groundingSources, setGroundingSources] = useState<any[]>([]);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -173,9 +174,56 @@ function EditorContent() {
     ? normalizedContent.includes(normalize(mainKeyword)) 
     : false;
 
+  const convertToHtmlText = (markdown: string) => {
+    const lines = markdown.split('\n');
+    let htmlOutput = "";
+
+    lines.forEach((line, index) => {
+      let trimmed = line.trim();
+      if (!trimmed) {
+        htmlOutput += "<br>";
+        if (index < lines.length - 1) htmlOutput += "\n";
+        return;
+      }
+
+      // markdown 볼드를 html <b> 로 치환
+      trimmed = trimmed.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+      
+      if (trimmed.startsWith('# ')) {
+        htmlOutput += `<span class="fc-h1"><b>${trimmed.replace(/^# /, '').trim()}</b></span><br><br>`;
+        // H1 바로 아래에 서브 키워드를 태그 형태로 삽입
+        if (subKeywords && subKeywords.length > 0) {
+           const tagsHtml = subKeywords.slice(0, 3).map((k: string) => 
+             `<span class="fc-h6" style="background-color: #f2f2f2; padding: 6px 14px; border-radius: 20px; margin-right: 8px; color: #555; display: inline-block; font-weight: bold;">#${k.trim()}</span>`
+           ).join('');
+           htmlOutput += `<div style="margin-bottom: 24px;">${tagsHtml}</div>`;
+        }
+      } else if (trimmed.startsWith('## ')) {
+        // H2에 굵기와 포인트 컬러(#FC1C49) 적용
+        htmlOutput += `<span class="fc-h2" style="color: #FC1C49"><b>${trimmed.replace(/^## /, '').trim()}</b></span><br>`; 
+      } else if (trimmed.startsWith('### ')) {
+        htmlOutput += `<span class="fc-h2"><b>${trimmed.replace(/^### /, '').trim()}</b></span><br>`; 
+      } else if (trimmed.startsWith('#### ')) {
+        htmlOutput += `<span class="fc-h3"><b>${trimmed.replace(/^#### /, '').trim()}</b></span><br>`;
+      } else if (trimmed.startsWith('##### ')) {
+        htmlOutput += `<span class="fc-h3"><b>${trimmed.replace(/^##### /, '').trim()}</b></span><br>`;
+      } else if (trimmed.startsWith('---')) {
+        // 스크린샷과 유사한 스타일의 가로선
+        htmlOutput += `<hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;"><br>`;
+      } else {
+        htmlOutput += `<span class="fc-h6">${trimmed}</span><br>`;
+      }
+      
+      if (index < lines.length - 1) htmlOutput += "\n";
+    });
+
+    return htmlOutput;
+  };
+
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(content);
-    alert("클립보드에 복사되었습니다!");
+    const textToCopy = format === 'html' ? convertToHtmlText(content) : content;
+    navigator.clipboard.writeText(textToCopy);
+    alert(format === 'html' ? "HTML 소스코드가 클립보드에 복사되었습니다!" : "마크다운이 클립보드에 복사되었습니다!");
   };
 
   const saveToGoogle = async () => {
@@ -256,8 +304,21 @@ function EditorContent() {
         <div className="flex-1 flex flex-col bg-[#1c1c1e] border border-white/5 rounded-[32px] overflow-hidden shadow-2xl relative">
           <div className="px-8 py-5 border-b border-white/5 bg-white/5 flex justify-between items-center backdrop-blur-md">
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white mb-0.5">블로그 에디터</h1>
-              <p className="text-[11px] text-gray-400 font-medium">마크다운 형식을 지원합니다.</p>
+              <h1 className="text-xl font-bold tracking-tight text-white mb-2">블로그 에디터</h1>
+              <div className="flex items-center gap-2 bg-[#2c2c2e] p-1 rounded-[12px] border border-white/5">
+                <button 
+                  onClick={() => setFormat('markdown')}
+                  className={`px-4 py-1.5 text-[12px] font-bold rounded-[8px] transition-all ${format === 'markdown' ? 'bg-[#3182f6] text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+                >
+                  Markdown
+                </button>
+                <button 
+                  onClick={() => setFormat('html')}
+                  className={`px-4 py-1.5 text-[12px] font-bold rounded-[8px] transition-all ${format === 'html' ? 'bg-[#3182f6] text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+                >
+                  HTML Code
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -298,9 +359,12 @@ function EditorContent() {
           `}} />
 
             <textarea
-              className="w-full flex-1 p-8 bg-transparent text-[#f5f5f7] outline-none resize-none font-sans text-[15px] leading-relaxed placeholder-gray-600"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
+              className={`w-full flex-1 p-8 bg-transparent outline-none resize-none text-[15px] leading-relaxed placeholder-gray-600 ${format === 'html' ? 'text-[#30d158] font-mono whitespace-pre-wrap' : 'text-[#f5f5f7] font-sans'}`}
+              value={format === 'html' ? convertToHtmlText(content) : content}
+              onChange={(e) => {
+                if (format === 'markdown') setContent(e.target.value);
+              }}
+              readOnly={format === 'html'}
               placeholder="AI가 블로그 내용을 작성하고 있습니다..."
             />
 

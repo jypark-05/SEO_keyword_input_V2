@@ -152,23 +152,39 @@ export async function POST(req: Request) {
             controller.enqueue(new TextEncoder().encode("*(실시간 검색을 통해 최신 정보를 확인하고 있습니다...)*\n\n"));
             
             try {
-              const searchModel = genAI.getGenerativeModel({ 
-                model: "gemini-3.1-flash-lite-preview",
-                tools: [{ googleSearch: {} }] as any,
+              // Tavily API를 사용한 실시간 검색 및 요약
+              const searchQuery = `${mainKeyword} 트렌드 및 최신 정보: ${selectedTopic.title}`;
+              const tavilyResponse = await fetch("https://api.tavily.com/search", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  api_key: process.env.TAVILY_API_KEY,
+                  query: searchQuery,
+                  search_depth: "basic",
+                  include_answer: true,
+                  max_results: 5
+                })
               });
 
-              const searchQuery = `다음 주제와 관련된 최신 트렌드/뉴스/핵심 내용을 검색해서 요약해줘: ${mainKeyword} (${selectedTopic.title})`;
-              const searchResult = await searchModel.generateContent(searchQuery);
-              const searchResponse = await searchResult.response;
+              if (!tavilyResponse.ok) {
+                throw new Error(`Tavily API 요청 실패: ${tavilyResponse.statusText}`);
+              }
+
+              const searchData = await tavilyResponse.json();
               
-              gatheredFacts = searchResponse.text();
-              
-              const candidate = searchResponse.candidates?.[0];
-              if (candidate?.groundingMetadata) {
-                gatheredSources = candidate.groundingMetadata.groundingChunks?.map((chunk: any) => ({
-                  title: chunk.web?.title || "출처",
-                  url: chunk.web?.uri || "#"
-                })).filter((s: any) => s.url !== "#") || [];
+              // Tavily가 요약해준 최상단 answer와 개별 검색 결과를 합쳐서 팩트 구성
+              gatheredFacts = "";
+              if (searchData.answer) {
+                gatheredFacts += `[요약]\n${searchData.answer}\n\n`;
+              }
+              if (searchData.results && searchData.results.length > 0) {
+                gatheredFacts += searchData.results.map((r: any) => `Title: ${r.title}\nContent: ${r.content}`).join("\n\n");
+                gatheredSources = searchData.results.map((r: any) => ({
+                  title: r.title || "참고자료",
+                  url: r.url || "#"
+                }));
+              } else {
+                gatheredFacts = "관련된 최신 검색 결과를 찾지 못했습니다.";
               }
               
               controller.enqueue(new TextEncoder().encode("*(정보 수집 완료! 블로그 작성을 시작합니다...)*\n\n"));

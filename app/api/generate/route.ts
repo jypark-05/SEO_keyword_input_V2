@@ -153,7 +153,7 @@ export async function POST(req: Request) {
             
             try {
               const searchModel = genAI.getGenerativeModel({ 
-                model: "gemini-2.5-flash",
+                model: "gemini-3.1-flash-lite-preview",
                 tools: [{ googleSearch: {} }] as any,
               });
 

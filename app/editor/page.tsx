@@ -32,151 +32,7 @@ const groupedChecklist = SEO_CHECKLIST.reduce((acc, item) => {
   return acc;
 }, {} as Record<string, typeof SEO_CHECKLIST>);
 
-function EditorContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const [content, setContent] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [done, setDone] = useState(false);
-  const [activeTab, setActiveTab] = useState<"editor" | "guide">("editor");
-  const [format, setFormat] = useState<"markdown" | "html">("markdown");
-  const [groundingSources, setGroundingSources] = useState<any[]>([]);
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [savedDocUrl, setSavedDocUrl] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState("");
-  const [refiningItemId, setRefiningItemId] = useState<string | null>(null);
-
-  const courseName = searchParams.get("courseName") || "";
-  const target = searchParams.get("target") || "";
-  const usps = [searchParams.get("usp1"), searchParams.get("usp2"), searchParams.get("usp3")];
-  const topicTitle = searchParams.get("topicTitle") || "";
-  const topicDirection = searchParams.get("topicDirection") || "";
-  const topicHook = searchParams.get("topicHook") || "";
-  const contentType = searchParams.get("topicType") || "";
-
-  const mainKeyword = searchParams.get("mainKeyword") || "";
-  const subKeywords = searchParams.get("subKeywords")?.split(",") || [];
-  const relatedKeywords = searchParams.get("relatedKeywords")?.split(",") || [];
-  const useSearch = searchParams.get("useSearch") === "true";
-
-  const hasStarted = useRef(false);
-
-  useEffect(() => {
-    if (hasStarted.current || !topicTitle) return;
-    hasStarted.current = true;
-    generateContent();
-  }, [topicTitle]);
-
-  const generateContent = async () => {
-    setIsGenerating(true);
-    setIsEvaluating(false);
-    setDone(false);
-    setContent("");
-    setCheckedItems({});
-
-    let generatedText = "";
-
-    try {
-      const seoGuide = localStorage.getItem("seoGuide") || "";
-
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mainKeyword,
-          subKeywords,
-          relatedKeywords,
-          selectedTopic: { title: topicTitle, direction: topicDirection, hook: topicHook },
-          lectureInfo: courseName,
-          usps,
-          target,
-          seoGuide,
-          useSearch
-        })
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "글 생성 중 오류가 발생했습니다.");
-      }
-
-      if (!res.body) throw new Error("No response body");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      
-      while (true) {
-        const { value, done: doneReading } = await reader.read();
-        if (doneReading) break;
-        const chunk = decoder.decode(value, { stream: true });
-        
-        // SOURCES_JSON 체크 (스트림 마지막에 전달됨)
-        if (chunk.includes("SOURCES_JSON:")) {
-          const parts = chunk.split("SOURCES_JSON:");
-          const textPart = parts[0];
-          const jsonPart = parts[1];
-          
-          generatedText += textPart;
-          setContent(generatedText);
-          
-          try {
-            const sources = JSON.parse(jsonPart);
-            setGroundingSources(sources);
-          } catch (e) {
-            console.error("Failed to parse sources JSON", e);
-          }
-        } else {
-          generatedText += chunk;
-          setContent(generatedText);
-        }
-      }
-    } catch (error: any) {
-      console.error(error);
-      setContent(error.message || "글 생성 중 오류가 발생했습니다. 다시 시도해 주세요.");
-      setIsGenerating(false);
-      setDone(true);
-      return;
-    } 
-
-    setIsGenerating(false);
-    
-    // --- Start AI Evaluation ---
-    setIsEvaluating(true);
-    try {
-      const evalRes = await fetch("/api/evaluate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: generatedText, mainKeyword })
-      });
-      if (evalRes.ok) {
-        const evalData = await evalRes.json();
-        if (!evalData.error) {
-          setCheckedItems(evalData);
-        }
-      }
-    } catch (evalErr) {
-      console.error("Evaluation failed", evalErr);
-    } finally {
-      setIsEvaluating(false);
-      setDone(true);
-    }
-  };
-
-  const charCount = content.length;
-  
-  // 공백 및 대소문자 정규화 (탐지 확률 향상)
-  const normalize = (text: string) => text.toLowerCase().replace(/\s+/g, ' ').trim();
-  const normalizedContent = normalize(content);
-
-  const mainKeywordIncluded = mainKeyword 
-    ? normalizedContent.includes(normalize(mainKeyword)) 
-    : false;
-
-  const convertToHtmlText = (markdown: string) => {
-    const lines = markdown.split('\n');
-    let htmlOutput = `<style>
+const GLOBAL_CSS = `<style>
 
 .fc-maintext {
     font-size: 52px; 
@@ -388,9 +244,153 @@ color:#010101;
   @media (max-width: 768px) {
     .mobile-br { display: block; }
   }
-</style>
+</style>`;
 
-`;
+function EditorContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [content, setContent] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [done, setDone] = useState(false);
+  const [activeTab, setActiveTab] = useState<"editor" | "guide">("editor");
+  const [format, setFormat] = useState<"markdown" | "html">("markdown");
+  const [groundingSources, setGroundingSources] = useState<any[]>([]);
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedDocUrl, setSavedDocUrl] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState("");
+  const [refiningItemId, setRefiningItemId] = useState<string | null>(null);
+
+  const courseName = searchParams.get("courseName") || "";
+  const target = searchParams.get("target") || "";
+  const usps = [searchParams.get("usp1"), searchParams.get("usp2"), searchParams.get("usp3")];
+  const topicTitle = searchParams.get("topicTitle") || "";
+  const topicDirection = searchParams.get("topicDirection") || "";
+  const topicHook = searchParams.get("topicHook") || "";
+  const contentType = searchParams.get("topicType") || "";
+
+  const mainKeyword = searchParams.get("mainKeyword") || "";
+  const subKeywords = searchParams.get("subKeywords")?.split(",") || [];
+  const relatedKeywords = searchParams.get("relatedKeywords")?.split(",") || [];
+  const useSearch = searchParams.get("useSearch") === "true";
+
+  const hasStarted = useRef(false);
+
+  useEffect(() => {
+    if (hasStarted.current || !topicTitle) return;
+    hasStarted.current = true;
+    generateContent();
+  }, [topicTitle]);
+
+  const generateContent = async () => {
+    setIsGenerating(true);
+    setIsEvaluating(false);
+    setDone(false);
+    setContent("");
+    setCheckedItems({});
+
+    let generatedText = "";
+
+    try {
+      const seoGuide = localStorage.getItem("seoGuide") || "";
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mainKeyword,
+          subKeywords,
+          relatedKeywords,
+          selectedTopic: { title: topicTitle, direction: topicDirection, hook: topicHook },
+          lectureInfo: courseName,
+          usps,
+          target,
+          seoGuide,
+          useSearch
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "글 생성 중 오류가 발생했습니다.");
+      }
+
+      if (!res.body) throw new Error("No response body");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      
+      while (true) {
+        const { value, done: doneReading } = await reader.read();
+        if (doneReading) break;
+        const chunk = decoder.decode(value, { stream: true });
+        
+        // SOURCES_JSON 체크 (스트림 마지막에 전달됨)
+        if (chunk.includes("SOURCES_JSON:")) {
+          const parts = chunk.split("SOURCES_JSON:");
+          const textPart = parts[0];
+          const jsonPart = parts[1];
+          
+          generatedText += textPart;
+          setContent(generatedText);
+          
+          try {
+            const sources = JSON.parse(jsonPart);
+            setGroundingSources(sources);
+          } catch (e) {
+            console.error("Failed to parse sources JSON", e);
+          }
+        } else {
+          generatedText += chunk;
+          setContent(generatedText);
+        }
+      }
+    } catch (error: any) {
+      console.error(error);
+      setContent(error.message || "글 생성 중 오류가 발생했습니다. 다시 시도해 주세요.");
+      setIsGenerating(false);
+      setDone(true);
+      return;
+    } 
+
+    setIsGenerating(false);
+    
+    // --- Start AI Evaluation ---
+    setIsEvaluating(true);
+    try {
+      const evalRes = await fetch("/api/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: generatedText, mainKeyword })
+      });
+      if (evalRes.ok) {
+        const evalData = await evalRes.json();
+        if (!evalData.error) {
+          setCheckedItems(evalData);
+        }
+      }
+    } catch (evalErr) {
+      console.error("Evaluation failed", evalErr);
+    } finally {
+      setIsEvaluating(false);
+      setDone(true);
+    }
+  };
+
+  const charCount = content.length;
+  
+  // 공백 및 대소문자 정규화 (탐지 확률 향상)
+  const normalize = (text: string) => text.toLowerCase().replace(/\s+/g, ' ').trim();
+  const normalizedContent = normalize(content);
+
+  const mainKeywordIncluded = mainKeyword 
+    ? normalizedContent.includes(normalize(mainKeyword)) 
+    : false;
+
+  const convertToHtmlText = (markdown: string) => {
+    const lines = markdown.split('\n');
+    let htmlOutput = '';
 
     lines.forEach((line, index) => {
       let trimmed = line.trim();
@@ -433,6 +433,53 @@ color:#010101;
     });
 
     return htmlOutput;
+  };
+
+  const getHtmlSections = (markdown: string) => {
+    if (!markdown.trim()) return [];
+
+    const sections: { title: string, html: string }[] = [];
+
+    let currentTitle = "🏷️ 제목 및 해시태그";
+    let currentLines: string[] = [];
+    let sectionCount = 1;
+
+    const flush = (nextTitle: string) => {
+      const mdContent = currentLines.join('\n').trim();
+      if (mdContent) {
+        sections.push({
+          title: currentTitle,
+          html: convertToHtmlText(mdContent).trim()
+        });
+      }
+      currentLines = [];
+      currentTitle = nextTitle;
+    };
+
+    const lines = markdown.split('\n');
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+
+      if (trimmed.startsWith('### 글 미리보기')) {
+        flush(`📋 글 미리보기 (목차)`);
+      } else if (trimmed.startsWith('## ')) {
+        const h2Text = trimmed.replace(/^## /, '');
+        flush(`📝 본문 단락 ${sectionCount++}: ${h2Text.substring(0, 20)}...`);
+      } else if (trimmed.startsWith('### FAQ') || trimmed.includes('FAQ:')) {
+        flush(`💡 하단: FAQ (자주 묻는 질문)`);
+      }
+      
+      currentLines.push(line);
+      
+      if (trimmed.startsWith('---') && currentTitle.includes("글 미리보기")) {
+        flush(`🖋️ 본문 서론`);
+      }
+    });
+
+    flush("");
+    
+    return sections.filter(s => s.html && s.html !== '<br>' && s.html !== '<br><br>');
   };
 
   const copyToClipboard = () => {
@@ -554,7 +601,7 @@ color:#010101;
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                복사하기
+                {format === 'html' ? '전체 HTML 복사' : '전체 마크다운 복사'}
               </button>
             </div>
           </div>
@@ -573,15 +620,36 @@ color:#010101;
             }
           `}} />
 
-            <textarea
-              className={`w-full flex-1 p-8 bg-transparent outline-none resize-none text-[15px] leading-relaxed placeholder-gray-600 ${format === 'html' ? 'text-[#30d158] font-mono whitespace-pre-wrap' : 'text-[#f5f5f7] font-sans'}`}
-              value={format === 'html' ? convertToHtmlText(content) : content}
-              onChange={(e) => {
-                if (format === 'markdown') setContent(e.target.value);
-              }}
-              readOnly={format === 'html'}
-              placeholder="AI가 블로그 내용을 작성하고 있습니다..."
-            />
+            {format === 'html' ? (
+              <div className="flex-1 w-full p-6 overflow-y-auto bg-transparent space-y-6">
+                {getHtmlSections(content).map((sec, i) => (
+                  <div key={i} className="bg-black/20 border border-white/5 rounded-2xl p-5 shadow-lg group hover:border-[#3182f6]/30 transition-all">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-3">
+                      <h4 className="text-[14px] font-bold text-white tracking-tight">{sec.title}</h4>
+                      <button 
+                        onClick={() => { navigator.clipboard.writeText(sec.html); alert(sec.title + " 코드가 복사되었습니다!"); }}
+                        className="px-3.5 py-1.5 text-[12px] font-bold bg-white/5 hover:bg-[#3182f6] hover:text-white text-gray-300 rounded-[10px] transition-all flex items-center gap-1.5 opacity-80 group-hover:opacity-100"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        해당 블록 복사
+                      </button>
+                    </div>
+                    <pre className="text-[#30d158] font-mono text-[13px] whitespace-pre-wrap leading-relaxed select-all">
+                      {sec.html}
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <textarea
+                className="w-full flex-1 p-8 bg-transparent text-[#f5f5f7] outline-none resize-none font-sans text-[15px] leading-relaxed placeholder-gray-600"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="AI가 블로그 내용을 작성하고 있습니다..."
+              />
+            )}
 
             {/* Grounding Sources (실시간 검색 출처) */}
             {groundingSources.length > 0 && (

@@ -93,10 +93,11 @@ const DEFAULT_SEO_GUIDE = `당신은 교육 회사의 Google SEO + GEO 최적화
 ---
 
 [출처 신뢰성 주의사항]
-- 실제로 확인할 수 없거나 불확실한 출처는 절대 만들어내지 마세요.
-- 출처가 불확실한 경우 "관련 연구에 따르면~", "업계 전문가들은~" 형태의 일반적 서술로 대체하세요.
-- 논문 제목, 저자, 연도 등 구체적 정보가 확실하지 않으면 명시하지 마세요.
-- 참고 자료 목록에는 실제 존재가 확실한 출처만 포함하세요.`;
+- 실제로 확인할 수 없거나 불확실한 출처는 절대 만들어내지 마세요 (환각 엄격 금지).
+- 사용자 프롬프트에 제공된 [수집된 실시간 정보]와 [출처 목록]을 최우선으로 분석하여 본문에 인용하세요.
+- 각주나 출처 표기 시, [출처 목록]에 명시된 Title과 URL만 사용하세요.
+- 제공된 실시간 정보만으로 부족할 경우 일반적인 지식은 활용하되, 구체적인 논문 제목, 저자, 링크 등을 임의로 지어내면 절대 안 됩니다.
+- 본문 하단의 '참고 자료' 목록에는 [출처 목록]에 제공된 실제 URL만을 포함하세요.`;
 
 export async function POST(req: Request) {
   try {
@@ -152,7 +153,7 @@ export async function POST(req: Request) {
             
             try {
               const searchModel = genAI.getGenerativeModel({ 
-                model: "gemini-1.5-flash", // 좀 더 안정적인 1.5-flash 모델로 검색 수행
+                model: "gemini-2.0-flash-exp", // 사용자 요청에 따라 2.0 모델로 원복
                 tools: [{ googleSearch: {} }] as any,
               });
 

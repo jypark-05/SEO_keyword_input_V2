@@ -176,12 +176,227 @@ function EditorContent() {
 
   const convertToHtmlText = (markdown: string) => {
     const lines = markdown.split('\n');
-    let htmlOutput = "";
+    let htmlOutput = `<style>
+
+.fc-maintext {
+    font-size: 52px; 
+    letter-spacing:-0.2px;
+    line-height:135%
+}
+@media screen and (max-width: 767px) {
+    .fc-maintext {
+        font-size: 40px; 
+        letter-spacing:-0.15px;
+    }
+    .br-delete br {
+        display: none;
+    }
+}
+
+
+.fc-h1 {
+    font-size: 40px; 
+    letter-spacing:-0.2px;
+}
+@media screen and (max-width: 767px) {
+    .fc-h1 {
+        font-size: 32px; 
+        letter-spacing:-0.2px;
+    }
+    .br-delete br {
+        display: none;
+    }
+}
+
+.fc-h2 {
+    font-size: 32px; 
+    letter-spacing:-0.2px;
+}
+@media screen and (max-width: 767px) {
+    .fc-h2 {
+        font-size: 28px; 
+        letter-spacing:-0.15px;
+    }
+    .br-delete br {
+        display: none;
+    }
+}
+
+.fc-h3 {
+    font-size: 28px; 
+    letter-spacing:-0.15px;
+}
+@media screen and (max-width: 767px) {
+    .fc-h3 {
+        font-size: 24px; 
+        letter-spacing:-0.15px;
+    }
+    .br-delete br {
+        display: none;
+    }
+}
+
+.fc-h4 {
+    font-size: 24px; 
+    letter-spacing:-0.15px;
+}
+@media screen and (max-width: 767px) {
+    .fc-h4 {
+        font-size: 20px; 
+        letter-spacing:-0.15px;
+    }
+    .br-delete br {
+        display: none;
+    }
+}
+
+.fc-h5 {
+    font-size: 20px; 
+    letter-spacing:-0.15px;
+}
+@media screen and (max-width: 767px) {
+    .fc-h5 {
+        font-size: 16px; 
+        letter-spacing:-0.1px;
+    }
+    .br-delete br {
+        display: none;
+    }
+}
+
+.fc-h6 {
+    font-size: 18px; 
+    letter-spacing:-0.1px;
+    font-weight:500;
+}
+@media screen and (max-width: 767px) {
+    .fc-h6 {
+        font-size: 16px; 
+    }
+    .br-delete br {
+        display: none;
+    }
+}
+
+.fc-con {
+    font-size: 14px; 
+    letter-spacing:-0.1px;
+    display:inline-block;
+}
+@media screen and (max-width: 767px) {
+    .fc-con {
+        font-size: 12px; 
+    }
+    .br-delete br {
+        display: none;
+    }
+}
+
+
+.tag-1 {
+font-weight: 700;
+letter-spacing: -.1px;
+color: #43E6FF;
+padding: 5px 10px;
+border-radius:5px;
+border:1px solid #43E6FF;
+display:inline-block;
+}
+
+.tag-2 {
+font-size: 14px;
+font-weight: 700;
+letter-spacing: -.1px;
+color: #fff;
+background: #3593FF;
+padding: 10px 16px;
+border-radius:40px;
+display:inline-block;
+}
+
+.tag-3 {
+font-size: 16px;
+font-weight: 700;
+letter-spacing: -.1px;
+color: #43E6FF;
+background: #051618;
+padding: 5px 10px;
+border-radius:5px;
+border:1px solid #43E6FF;
+display:inline-block;
+}
+
+.tag-4 {
+font-size: 16px;
+font-weight: 700;
+letter-spacing: -.1px;
+color: #43E6FF;
+background: #0B3C56;
+padding: 5px 10px;
+border-radius:5px;
+border:1px solid #43E6FF;
+display:inline-block;
+}
+
+.kdc-label {
+font-size: 14px;
+font-weight: 700;
+letter-spacing: -.1px;
+color: #FFDD7F;
+background: #000;
+padding: 5px 10px;
+border-radius:40px;
+display:inline-block;
+}
+
+.button_challenge {
+font-size: 14px;
+font-weight: 700;
+letter-spacing: -.1px;
+color:#997100;
+background:  #43E6FF;
+padding: 11px 22px;
+border-radius:10px;
+transition: 0.2s ease-in-out;
+margin-top:16px;
+}
+.button_challenge:hover {
+background: #fff;
+color:#997100;
+}
+
+.button {
+letter-spacing: -.1px;
+color:#010101;
+background:  #43E6FF;
+padding: 30px 35px 28px 35px;
+border-radius:50px;
+transition: 0.2s ease-in-out;
+}
+.button:hover {
+background: #fff;
+color:#010101;
+}
+
+</style>
+
+<style>
+  /* 기본: 숨김(데스크탑/태블릿) */
+  .mobile-br { display: none; }
+
+  /* 모바일(예: 768px 이하)에서만 보이게 */
+  @media (max-width: 768px) {
+    .mobile-br { display: block; }
+  }
+</style>
+
+`;
 
     lines.forEach((line, index) => {
       let trimmed = line.trim();
       if (!trimmed) {
-        htmlOutput += "<br>";
+        // 단락 사이의 간격을 더 넓히기 위해 br(줄바꿈)을 2번 연속 삽입합니다.
+        htmlOutput += "<br><br>";
         if (index < lines.length - 1) htmlOutput += "\n";
         return;
       }
@@ -194,9 +409,9 @@ function EditorContent() {
         // H1 바로 아래에 서브 키워드를 태그 형태로 삽입
         if (subKeywords && subKeywords.length > 0) {
            const tagsHtml = subKeywords.slice(0, 3).map((k: string) => 
-             `<span class="fc-h6" style="background-color: #f2f2f2; padding: 6px 14px; border-radius: 20px; margin-right: 8px; color: #555; display: inline-block; font-weight: bold;">#${k.trim()}</span>`
-           ).join('');
-           htmlOutput += `<div style="margin-bottom: 24px;">${tagsHtml}</div>`;
+             `<span style="color: #a0a0a0; border: 1px solid ed234b; background: #eeeeee; border-radius: 30px; margin-right: 5px; text-align: center; font-size: 15px; padding: 10px 25px 10px 25px;  display: inline-block; margin-bottom: 3px;">#${k.trim()}</span>`
+           ).join('\n');
+           htmlOutput += `<div style="display: flex; flex-wrap: wrap; margin-bottom: 24px;">\n${tagsHtml}\n</div>`;
         }
       } else if (trimmed.startsWith('## ')) {
         // H2에 굵기와 포인트 컬러(#FC1C49) 적용
@@ -344,11 +559,11 @@ function EditorContent() {
             </div>
           </div>
 
-          {isGenerating && (
-            <div className="absolute top-[76px] left-0 w-full h-[2px] bg-[#1c1c1e] z-10 overflow-hidden">
+          <div className="w-full h-[2px] bg-transparent z-10 overflow-hidden shrink-0">
+            {isGenerating && (
               <div className="h-full bg-[#3182f6] w-1/3 animate-[slide_1.5s_ease-in-out_infinite]" style={{ animationName: 'slide' }}></div>
-            </div>
-          )}
+            )}
+          </div>
 
           <style dangerouslySetInnerHTML={{
             __html: `

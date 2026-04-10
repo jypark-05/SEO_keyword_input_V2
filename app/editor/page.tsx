@@ -398,6 +398,24 @@ function EditorContent() {
   const mainKeywordIncluded = mainKeyword 
     ? normalizedContent.includes(normalize(mainKeyword)) 
     : false;
+    
+  // 태그가 열린 채로 닫히지 않아 발생하는 번짐 오류(Bold bleeding 등)를 방지하기 위해 강제로 닫아주는 헬퍼
+  const closeTags = (html: string) => {
+    const tags = ['b', 'span', 'a', 'div'];
+    let result = html;
+    tags.forEach(tag => {
+      // 대소문자 구분 없이 태그 추출
+      const openRegex = new RegExp(`<${tag}(\\s|>|$)`, 'gi');
+      const closeRegex = new RegExp(`</${tag}>`, 'gi');
+      const openCount = (result.match(openRegex) || []).length;
+      const closeCount = (result.match(closeRegex) || []).length;
+      // 열린 태그가 닫힌 태그보다 많으면 그만큼 마지막에 추가
+      for (let i = 0; i < (openCount - closeCount); i++) {
+        result += `</${tag}>`;
+      }
+    });
+    return result;
+  };
 
   const convertToHtmlText = (markdown: string) => {
     const lines = markdown.split('\n');
@@ -422,8 +440,11 @@ function EditorContent() {
         return;
       }
 
-      // markdown 볼드를 html <b> 로 치환
-      trimmed = trimmed.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+      // markdown 볼드를 html <b> 로 치환 (**, __ 둘 다 지원)
+      trimmed = trimmed.replace(/(\*\*|__)(.*?)\1/g, '<b>$2</b>');
+
+      // markdown 링크를 html <a> 로 치환 ([text](url))
+      trimmed = trimmed.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" style="color: #007bff; text-decoration: underline;">$1</a>');
       
       if (trimmed.startsWith('# ')) {
         htmlOutput += `<span class="fc-h1"><b>${trimmed.replace(/^# /, '').trim()}</b></span><br><br>`;
@@ -485,13 +506,12 @@ function EditorContent() {
           htmlContent = `${metaHtml}<div style="line-height:30px; font-size:130%;">\n${htmlContent}\n</div>`;
         }
 
-        // 섹션 간 간격 조정: 최상단(H1 위)에만 <br><br> 고정 삽입
-        if (currentTitle === "🏷️ 제목 및 해시태그") {
-          htmlContent = `<br><br>\n${htmlContent}`;
-        } else {
-          // 그 외 섹션은 단순 줄바꿈만 추가 (중복 방지)
-          htmlContent = `\n${htmlContent}`;
-        }
+        // 모든 섹션 상단과 하단에 <br><br> 삽입 (사용자 요청: 각 섹션별 코드 맨아래위에 2개씩)
+        // 중복 방지를 위해 앞뒤에 붙어있을 수 있는 <br>이나 줄바꿈을 먼저 제거합니다.
+        let cleanedHtml = htmlContent.replace(/^(<br>|\n)+/g, '').replace(/(<br>|\n)+$/g, '');
+        // 태그 번짐 방지를 위해 검수
+        cleanedHtml = closeTags(cleanedHtml);
+        htmlContent = `<br><br>\n${cleanedHtml}\n<br><br>`;
 
         sections.push({
           title: currentTitle,

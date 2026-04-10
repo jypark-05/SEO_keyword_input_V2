@@ -394,6 +394,16 @@ function EditorContent() {
 
     lines.forEach((line, index) => {
       let trimmed = line.trim();
+      
+      // Title 및 Meta Description 라인 건너뛰기 (HTML 출력 전용)
+      if (trimmed.toLowerCase().startsWith('title:') || 
+          trimmed.toLowerCase().startsWith('**title**:') ||
+          trimmed.toLowerCase().startsWith('meta description:') ||
+          trimmed.toLowerCase().startsWith('**meta description**:')
+      ) {
+        return;
+      }
+
       if (!trimmed) {
         // 단락 사이의 간격을 더 넓히기 위해 br(줄바꿈)을 2번 연속 삽입합니다.
         htmlOutput += "<br><br>";
@@ -446,6 +456,9 @@ function EditorContent() {
     let currentLines: string[] = [];
     let sectionCount = 1;
 
+    const metaMatch = markdown.match(/(?:\*\*Meta Description\*\*|Meta Description):?\s*(.*)/i);
+    const metaDesc = metaMatch ? metaMatch[1].trim() : "";
+
     const flush = (nextTitle: string) => {
       const mdContent = currentLines.join('\n').trim();
       if (mdContent) {
@@ -453,7 +466,11 @@ function EditorContent() {
 
         // 미리보기 섹션 폰트 스타일 감싸기
         if (currentTitle.includes("글 미리보기")) {
-          htmlContent = `<div style="line-height:30px; font-size:130%;">\n${htmlContent}\n</div>`;
+          let metaHtml = "";
+          if (metaDesc) {
+            metaHtml = `<span class="fc-h6" style="display: block; margin-bottom: 24px; color: #555;"><b>Meta Description</b>: ${metaDesc}</span><br>\n`;
+          }
+          htmlContent = `<div style="line-height:30px; font-size:130%;">\n${metaHtml}${htmlContent}\n</div>`;
         }
 
         // 1번(제목 및 해시태그)을 제외한 모든 섹션에 앞뒤 <br> 추가

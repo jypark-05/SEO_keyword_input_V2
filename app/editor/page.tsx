@@ -485,10 +485,12 @@ function EditorContent() {
           htmlContent = `${metaHtml}<div style="line-height:30px; font-size:130%;">\n${htmlContent}\n</div>`;
         }
 
-        // 섹션 간 간격 조정 (기존 4개 -> 2개 수준으로 최적화)
-        // 1번 섹션 이후부터 상단에 <br><br>만 삽입
-        if (currentTitle !== "🏷️ 제목 및 해시태그") {
+        // 섹션 간 간격 조정: 최상단(H1 위)에만 <br><br> 고정 삽입
+        if (currentTitle === "🏷️ 제목 및 해시태그") {
           htmlContent = `<br><br>\n${htmlContent}`;
+        } else {
+          // 그 외 섹션은 단순 줄바꿈만 추가 (중복 방지)
+          htmlContent = `\n${htmlContent}`;
         }
 
         sections.push({

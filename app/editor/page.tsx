@@ -312,8 +312,19 @@ function EditorContent() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "글 생성 중 오류가 발생했습니다.");
+        let errorMessage = "글 생성 중 오류가 발생했습니다.";
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } else {
+          // JSON이 아닌 경우 (HTML 에러 페이지 등) 텍스트로 읽기 시도
+          const errorText = await res.text();
+          console.error("Server Error Response:", errorText);
+          if (res.status === 429) errorMessage = "API 할당량이 초과되었습니다. 잠시 후 다시 시도해 주세요.";
+          else if (res.status === 500) errorMessage = "서버 내부 오류가 발생했습니다. (잠시 후 다시 시도해 주세요)";
+        }
+        throw new Error(errorMessage);
       }
 
       if (!res.body) throw new Error("No response body");
@@ -468,14 +479,16 @@ function EditorContent() {
         if (currentTitle.includes("글 미리보기")) {
           let metaHtml = "";
           if (metaDesc) {
-            metaHtml = `<span class="fc-h6" style="display: block; margin-bottom: 24px; color: #555;"><b>Meta Description</b>: ${metaDesc}</span><br>\n`;
+            metaHtml = `<span class="fc-h6"><b>Meta Description</b>: ${metaDesc}</span><br><br>\n`;
           }
-          htmlContent = `<div style="line-height:30px; font-size:130%;">\n${metaHtml}${htmlContent}\n</div>`;
+          // 메타 디스크립션은 스타일(div) 밖에 배치 (사용자 요청: 상단 부분)
+          htmlContent = `${metaHtml}<div style="line-height:30px; font-size:130%;">\n${htmlContent}\n</div>`;
         }
 
-        // 1번(제목 및 해시태그)을 제외한 모든 섹션에 앞뒤 <br> 추가
+        // 섹션 간 간격 조정 (기존 4개 -> 2개 수준으로 최적화)
+        // 1번 섹션 이후부터 상단에 <br><br>만 삽입
         if (currentTitle !== "🏷️ 제목 및 해시태그") {
-          htmlContent = `<br>\n${htmlContent}\n<br>`;
+          htmlContent = `<br><br>\n${htmlContent}`;
         }
 
         sections.push({

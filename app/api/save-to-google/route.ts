@@ -60,13 +60,10 @@ export async function POST(req: Request) {
     const docId = driveRes.data.id!;
     const docUrl = `https://docs.google.com/document/d/${docId}/edit`;
 
-    // --- 1.5 전체 접근 권한 설정 (링크가 있는 모든 사용자에게 읽기 권한 부여) ---
-    currentStep = "Step 1.5: 문서 접근 권한 변경 (전체 공개)";
-    console.log(currentStep);
     await drive.permissions.create({
       fileId: docId,
       requestBody: {
-        role: "reader",
+        role: "writer",
         type: "anyone",
       },
     });
@@ -89,8 +86,22 @@ export async function POST(req: Request) {
     });
 
     // --- 3. Google Sheets에 아카이빙 ---
-    currentStep = "Step 3: Google Sheets 기록";
+    currentStep = "Step 3: Google Sheets 기록 및 권한 설정";
     const SHEET_ID = process.env.GOOGLE_SHEETS_ID || "1_uT4vIH9wsagpfiSepHKWAQ_h_J0cZG8z956R2ibWRs";
+
+    // 시트 권한 설정 (링크가 있는 모든 사용자에게 편집 권한 부여)
+    try {
+      await drive.permissions.create({
+        fileId: SHEET_ID,
+        requestBody: {
+          role: "writer",
+          type: "anyone",
+        },
+      });
+      console.log("시트 권한 설정 완료");
+    } catch (permErr) {
+      console.warn("시트 권한 설정 중 오류 (이미 설정되어 있을 수 있음):", permErr);
+    }
     
     // 시트 이름 자동 감지 (첫 번째 탭 사용)
     let targetRange = "A:H";

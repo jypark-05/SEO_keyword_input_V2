@@ -200,7 +200,7 @@ export async function POST(req: Request) {
 
           // [Step 2] 작성 단계 (메인 모델 호출)
           const writerModel = genAI.getGenerativeModel({ 
-            model: "gemini-2.5-flash",
+            model: "gemini-3.1-flash-lite-preview",
             systemInstruction: systemPrompt,
           });
 

@@ -168,20 +168,20 @@ export default function SettingsPage() {
         </div>
 
         <div className="bg-[#1c1c1e] p-2 rounded-[32px] border border-white/5 shadow-2xl flex flex-col h-[650px]">
-          <textarea 
+          <textarea
             className="w-full flex-1 p-8 bg-transparent text-[#f5f5f7] outline-none resize-none font-mono text-[14px] leading-relaxed placeholder-gray-600"
             value={guide}
             onChange={(e) => setGuide(e.target.value)}
             spellCheck={false}
           />
           <div className="p-5 border-t border-white/5 flex justify-between items-center bg-[#2c2c2e] rounded-b-[30px] shadow-inner">
-            <button 
+            <button
               onClick={handleClear}
               className="px-5 py-3 rounded-2xl font-bold text-[14px] text-gray-400 hover:text-white border border-white/10 hover:bg-white/5 transition-all active:scale-[0.98]"
             >
               기본값 복원
             </button>
-            <button 
+            <button
               onClick={handleSave}
               className={`px-8 py-3 rounded-2xl font-bold text-[14px] transition-all active:scale-[0.98] flex items-center gap-2
                 ${saved ? 'bg-[#30d158] text-white shadow-[0_4px_15px_rgba(48,209,88,0.3)]' : 'bg-[#3182f6] text-white hover:bg-[#1b64da] shadow-[0_4px_15px_rgba(49,130,246,0.2)]'}`}

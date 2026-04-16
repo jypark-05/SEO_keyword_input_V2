@@ -5,20 +5,27 @@ export async function POST(req: Request) {
   try {
     const { courseName, usps, target, topicType, mainKeyword, subKeywords } = await req.json();
     
-    const prompt = `당신은 최상급 콘텐츠 마케터입니다. 기획 중인 블로그 방향: "${topicType || '일반'}", 주제/과정명: "${courseName}", 타겟 고객: "${target}". 
+    const prompt = `당신은 최상급 콘텐츠 마케터이자 SEO/AEO 전문가입니다. 
+기획 중인 블로그 방향: "${topicType || '일반'}", 주제/과정명: "${courseName}", 타겟 고객: "${target}". 
 핵심 소구포인트: 1. ${usps[0]} 2. ${usps[1]} 3. ${usps[2]}.
 선택된 메인 키워드: "${mainKeyword}", 서브 키워드: ${subKeywords.join(", ")}.
 
 이 정보를 바탕으로 타겟 고객을 확실히 끌어당기고 수강을 유도할 수 있는 매력적인 블로그 주제 3가지를 한국어로 기획해 주세요.
+
+[제목(title) 작성 규칙]
+1. 각 제목은 최대한 자연스럽게, 실제 사람이 쓴 것처럼 작성해 주세요.
+2. AEO(Answer Engine Optimization)를 위해 3개 중 1~2개는 사람들이 검색창에 직접 입력할 법한 질문 형태로 작성해 주세요. (예: "~은 왜 중요할까요?", "~를 시작하는 가장 쉬운 방법은?")
+3. 로봇 같은 딱딱하거나 상투적인 제목은 지양해 주세요.
+
 반드시 아래의 속성(key)을 가진 정확한 JSON 배열 형식([])으로만 응답해야 합니다.
-"title" (문자열: 사람을 이끄는 블로그 포스팅 제목)
+"title" (문자열: 사람을 이끄는 자연스러운 블로그 포스팅 제목)
 "direction" (문자열: 포스팅을 어떤 방향과 전략으로 쓸 것인지 간략한 설명)
 "hook" (문자열: 첫 문장에 들어갈 강력한 주의 끌기(Hook) 문구)
 "ctrPoint" (문자열: 수많은 검색 결과 중에서 이 글을 클릭할 수밖에 없는 명확한 이유)
 
 예시:
 [
-  { "title": "...", "direction": "...", "hook": "...", "ctrPoint": "..." }
+  { "title": "비전공자도 3개월 만에 개발자 취업, 정말 가능할까요?", "direction": "실제 비전공자 합격 사례와 커리큘럼을 매칭하여 신뢰성 부여", "hook": "코딩의 '코'자도 몰랐던 제가 어떻게 3개월 만에 네이버에 합격했을까요?", "ctrPoint": "광고가 아닌 실제 생존 전략과 노하우를 공개" }
 ]`;
 
     const apiKey = process.env.GEMINI_API_KEY;
